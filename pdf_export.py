@@ -58,8 +58,9 @@ def main() -> None:
     parser.add_argument(
         "--endpoint",
         "-e",
-        default=os.getenv("PDF_ENDPOINT", "http://localhost:8000/pdf/convert"),
-        help="PDF service endpoint (default env PDF_ENDPOINT or http://localhost:8000/pdf/convert)",
+        default=os.getenv("PDF_ENDPOINT"),
+        required=os.getenv("PDF_ENDPOINT") is None,
+        help="PDF service endpoint (required unless PDF_ENDPOINT is set)",
     )
     args = parser.parse_args()
 

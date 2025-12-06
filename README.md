@@ -40,14 +40,20 @@ A comprehensive Answer Engine Optimization (AEO) analysis platform. Analyze comp
 - Dark/light theme support
 - Professional design with insights and recommendations
 
-#### Local PDF export (standalone)
-You can convert any generated HTML report to PDF using a configurable endpoint:
+#### Local PDF export (standalone, no services)
+Render any HTML report directly to PDF with Playwright (no HTTP endpoint needed):
+```bash
+python render_pdf.py path/to/report.html --output report.pdf
+```
+
+#### Remote PDF export (if you have a service)
+If you have an HTTP PDF service, you can post the HTML:
 ```bash
 python pdf_export.py path/to/report.html \
-  --endpoint http://localhost:8000/pdf/convert \
+  --endpoint https://your-pdf-service/convert \
   --output report.pdf
 ```
-Set `PDF_ENDPOINT` env var to override the endpoint.
+Set `PDF_ENDPOINT` env var to supply the endpoint instead of `--endpoint`.
 
 ## 📁 Repository Structure
 
