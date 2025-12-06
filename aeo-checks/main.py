@@ -119,10 +119,13 @@ async def analyze_complete(request: CompleteAnalysisRequest):
     import os
     
     # Get base URL (current service)
-    base_url = os.getenv("MODAL_FUNCTION_URL", "http://localhost:8000")
-    if "localhost" in base_url:
-        # For local development, use the service URL
-        base_url = "http://localhost:8000"
+    # In Modal, construct from workspace name or use environment variable
+    workspace = os.getenv("MODAL_WORKSPACE")
+    if workspace:
+        base_url = f"https://{workspace}--aeo-checks-fastapi-app.modal.run"
+    else:
+        # Fallback to localhost for local development
+        base_url = os.getenv("MODAL_FUNCTION_URL", "http://localhost:8000")
     
     # Get PDF service URL from request or environment
     pdf_service_url = request.pdf_service_url or os.getenv("PDF_SERVICE_URL")
