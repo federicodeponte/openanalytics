@@ -146,15 +146,32 @@ async def run_complete_analysis(
     mentions_check = None
     if company_analysis and not company_analysis.get("error"):
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                mentions_response = await client.post(
-                    f"{base_url}/mentions/check",
-                    json={
-                        "companyName": company_name,
-                        "companyAnalysis": company_analysis,
-                        "mode": request.mentions_mode,
-                    }
-                )
+            # The company analysis response uses snake_case (company_info)
+            # But mentions service expects camelCase (companyInfo)
+            company_info = company_analysis.get("companyInfo") or company_analysis.get("company_info", {})
+            
+            # Verify we have products or services
+            products = company_info.get("products") or []
+            services = company_info.get("services") or []
+            
+            if not products and not services:
+                logger.warning("Company analysis missing products/services, skipping mentions check")
+                mentions_check = {"error": "Company analysis missing required data (products/services)"}
+            else:
+                # Structure for mentions check (camelCase)
+                company_analysis_for_mentions = {
+                    "companyInfo": company_info,
+                }
+                
+                async with httpx.AsyncClient(timeout=300.0) as client:
+                    mentions_response = await client.post(
+                        f"{base_url}/mentions/check",
+                        json={
+                            "companyName": company_name,
+                            "companyAnalysis": company_analysis_for_mentions,
+                            "mode": request.mentions_mode,
+                        }
+                    )
                 if mentions_response.status_code == 200:
                     mentions_check = mentions_response.json()
                     logger.info("Mentions check complete")
