@@ -16,18 +16,43 @@ from reports.html_generator import build_aeo_report_html
 
 def get_sample_data(company_name: str = "Telli"):
     """Get sample AEO analysis data."""
+    
+    # Map company names to their actual business info
+    company_info = {
+        'Telli': {
+            'industry': 'AI & Automation',
+            'products': ['AI Call Agents', 'Voice AI Platform', 'Call Automation'],
+            'services': ['Lead Qualification', 'Appointment Booking', 'Customer Engagement', 'Call Operations'],
+            'description': 'AI call automation platform for human and AI agents'
+        },
+        'Calendly': {
+            'industry': 'SaaS',
+            'products': ['Scheduling Software', 'Team Calendar'],
+            'services': ['Meeting Scheduling', 'Calendar Integration'],
+            'description': 'Scheduling software platform'
+        }
+    }
+    
+    # Get company-specific info or use defaults
+    info = company_info.get(company_name, {
+        'industry': 'Technology',
+        'products': ['Software Platform'],
+        'services': ['Digital Services'],
+        'description': 'Technology company'
+    })
+    
     return {
         'clientName': company_name,
-        'websiteUrl': 'https://telli.com',
+        'websiteUrl': f'https://{company_name.lower()}.com',
         'generatedAt': datetime.now(),
         'theme': 'dark',
         'canvasData': {
             'clientInfo': {
                 'name': company_name,
-                'website': 'https://telli.com',
-                'industry': 'SaaS',
-                'products': ['Scheduling Software', 'Team Calendar'],
-                'services': ['Meeting Scheduling', 'Calendar Integration'],
+                'website': f'https://{company_name.lower()}.com',
+                'industry': info['industry'],
+                'products': info['products'],
+                'services': info['services'],
             },
             'healthCheck': {
                 'score': 68,
