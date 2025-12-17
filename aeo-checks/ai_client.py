@@ -52,3 +52,75 @@ class AIClient:
         )
         # Result is already in the right format (dict with choices)
         return result
+    
+    async def query_with_structured_output(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        model: str = "gemini-2.5-flash",
+        response_format: str = "json",
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Generate structured output (JSON) from prompt."""
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        
+        try:
+            # Use the OpenRouter client for Gemini with JSON mode
+            if "gemini" in model.lower():
+                # Use OpenRouter for Gemini
+                result = await self.client.complete(
+                    messages=messages,
+                    model="google/gemini-2.0-flash-exp",  # Use latest Gemini via OpenRouter
+                    max_tokens=2000,
+                    temperature=0.3,
+                    **kwargs
+                )
+                
+                # Extract response content
+                if result and hasattr(result, 'choices') and result.choices:
+                    response_text = result.choices[0].message.content
+                    return {
+                        "success": True,
+                        "response": response_text,
+                        "model": "google/gemini-2.0-flash-exp"
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": "No response from Gemini",
+                        "response": ""
+                    }
+            else:
+                # Fallback to other models
+                result = await self.client.complete(
+                    messages=messages,
+                    model=model,
+                    max_tokens=2000,
+                    temperature=0.3,
+                    **kwargs
+                )
+                
+                if result and hasattr(result, 'choices') and result.choices:
+                    response_text = result.choices[0].message.content
+                    return {
+                        "success": True,
+                        "response": response_text,
+                        "model": model
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"No response from {model}",
+                        "response": ""
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error in structured output generation: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "response": ""
+            }

@@ -430,8 +430,81 @@ async def query_platform(
         }
             
     except Exception as e:
+        error_str = str(e)
         logger.error(f"{platform} query error: {e}")
-        return {"error": str(e), "platform": platform}
+        
+        # Check if this is an error that should trigger DataForSEO fallback
+        should_fallback = any(keyword in error_str.lower() for keyword in [
+            "rate limit", "quota", "resource_exhausted", "429", "too many requests",
+            "openrouter_api_key", "api key", "authentication", "unauthorized", "invalid"
+        ])
+        
+        if should_fallback and platform == "gemini":
+            logger.warning(f"🚨 [FALLBACK] Gemini failed ({error_str[:50]}...), attempting DataForSEO fallback...")
+            try:
+                # Import DataForSEO provider
+                from serp_dataforseo import DataForSeoProvider
+                
+                # Initialize DataForSEO provider with credentials from environment
+                import os
+                # Try multiple possible environment variable names
+                api_login = (
+                    os.environ.get("DATAFORSEO_API_LOGIN") or 
+                    os.environ.get("DATAFORSEO_LOGIN") or 
+                    os.environ.get("DATAFORSEO_USER") or
+                    os.environ.get("DATAFORSEO_USERNAME")
+                )
+                api_password = (
+                    os.environ.get("DATAFORSEO_API_PASSWORD") or 
+                    os.environ.get("DATAFORSEO_PASSWORD") or 
+                    os.environ.get("DATAFORSEO_API_KEY")
+                )
+                
+                if not api_login or not api_password:
+                    logger.warning(f"⚠️ [FALLBACK] DataForSEO credentials not found in environment")
+                    raise Exception("DataForSEO credentials not configured")
+                
+                dataforseo = DataForSeoProvider(api_login, api_password)
+                
+                if dataforseo.is_configured():
+                    logger.info(f"🔄 [FALLBACK] Using DataForSEO for query: '{query}'")
+                    
+                    # Execute search via DataForSEO
+                    serp_response = await dataforseo.search(
+                        query=query,
+                        num_results=10,
+                        language="en",
+                        country="us"
+                    )
+                    
+                    if serp_response.results:
+                        # Convert SERP results to AI-like response format
+                        organic_results = []
+                        for result in serp_response.results[:5]:  # Top 5 results
+                            if hasattr(result, 'title') and hasattr(result, 'description'):
+                                organic_results.append(f"• {result.title}: {result.description}")
+                        
+                        fallback_content = f"DataForSEO Search Results for '{query}':\n\n" + "\n".join(organic_results)
+                        
+                        logger.info(f"✅ [FALLBACK] DataForSEO successfully provided {len(organic_results)} results")
+                        
+                        return {
+                            "platform": "gemini_dataforseo_fallback",
+                            "response": fallback_content,
+                            "tokens": 0,
+                            "cost": 0.005,  # Approximate DataForSEO cost
+                            "fallback_used": True,
+                            "original_error": error_str
+                        }
+                    else:
+                        logger.warning(f"⚠️ [FALLBACK] DataForSEO returned no results for query: '{query}'")
+                else:
+                    logger.warning(f"⚠️ [FALLBACK] DataForSEO not configured, fallback unavailable")
+                    
+            except Exception as fallback_error:
+                logger.error(f"❌ [FALLBACK] DataForSEO fallback failed: {fallback_error}")
+        
+        return {"error": error_str, "platform": platform}
 
 
 async def query_all_platforms(
