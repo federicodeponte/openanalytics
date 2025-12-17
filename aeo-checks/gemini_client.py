@@ -26,7 +26,7 @@ class GeminiClient:
         genai.configure(api_key=self.api_key)
         
         # Initialize models
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
         # Note: For now using regular model, will add proper search tools later
         
         # Serper dev API fallback
@@ -96,7 +96,7 @@ class GeminiClient:
                         "role": "assistant"
                     }
                 }],
-                "model": "gemini-2.0-flash-exp",
+                "model": "gemini-2.5-flash",
                 "usage": {
                     "total_tokens": len(response.text.split())
                 }
@@ -118,7 +118,7 @@ class GeminiClient:
         self,
         prompt: str,
         system_prompt: str = "",
-        model: str = "gemini-2.0-flash-exp",
+        model: str = "gemini-2.5-flash",
         response_format: str = "json",
         **kwargs
     ) -> Dict[str, Any]:
@@ -287,7 +287,7 @@ Please include specific company names and details about their capabilities."""
             return {
                 "success": True,
                 "response": response.text,
-                "model": "gemini-2.0-flash-exp",
+                "model": "gemini-2.5-flash",
                 "search_grounding": True
             }
             
