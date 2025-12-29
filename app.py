@@ -131,7 +131,7 @@ async def health_check(request: HealthCheckRequest):
         band, _ = calculate_visibility_band(final_score)  # Returns (band_name, color)
 
         # Count pass/fail
-        passed = sum(1 for r in all_results if r.get("status") == "pass")
+        passed = sum(1 for r in all_results if r.get("passed") == True)
         failed = len(all_results) - passed
 
         execution_time = time.time() - start_time
@@ -144,12 +144,16 @@ async def health_check(request: HealthCheckRequest):
             band=band,
             checks_passed=passed,
             checks_failed=failed,
-            issues=[r for r in all_results if r.get("status") != "pass"],
+            issues=[r for r in all_results if r.get("passed") != True],
             execution_time=execution_time
         )
 
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 # ==================== Mentions Check ====================
 
@@ -224,8 +228,8 @@ Return as JSON array:
             {"query": f"{company_name}", "dimension": "Branded"}
         ][:num_queries]
 
-async def test_query_with_gemini(query: str) -> Dict[str, Any]:
-    """Test a single query with Gemini."""
+async def test_query_with_gemini(query: str, company_name: str) -> Dict[str, Any]:
+    """Test a single query with Gemini and detect company mentions."""
     try:
         client = get_gemini_client()
         response = await client.query_with_structured_output(
@@ -236,15 +240,18 @@ async def test_query_with_gemini(query: str) -> Dict[str, Any]:
 
         if response.get("success") and response.get("response"):
             text = response["response"]
-            # Simple mention detection
+            # Check if company is mentioned in response
+            company_mentioned = company_name.lower() in text.lower()
             return {
                 "query": query,
                 "has_response": True,
-                "response_length": len(text)
+                "company_mentioned": company_mentioned,
+                "response_length": len(text),
+                "response_preview": text[:200] if text else ""
             }
-        return {"query": query, "has_response": False}
-    except:
-        return {"query": query, "has_response": False}
+        return {"query": query, "has_response": False, "company_mentioned": False}
+    except Exception as e:
+        return {"query": query, "has_response": False, "company_mentioned": False, "error": str(e)}
 
 @app.post("/mentions", response_model=MentionsCheckResponse)
 async def mentions_check(request: MentionsCheckRequest):
@@ -270,20 +277,22 @@ async def mentions_check(request: MentionsCheckRequest):
             request.num_queries
         )
 
-        # Test queries (simplified for now - just checks if Gemini responds)
+        # Test queries and check for company mentions
         results = []
         for q in queries:
-            result = await test_query_with_gemini(q["query"])
+            result = await test_query_with_gemini(q["query"], request.company_name)
             results.append(result)
 
-        # Calculate metrics
+        # Calculate metrics based on actual mentions
         total_responses = sum(1 for r in results if r.get("has_response"))
+        total_mentions = sum(1 for r in results if r.get("company_mentioned"))
         presence_rate = (total_responses / len(results) * 100) if results else 0
+        mention_rate = (total_mentions / len(results) * 100) if results else 0
 
-        # Simplified scoring
-        visibility = presence_rate
-        mentions = total_responses
-        quality_score = 5.0 if mentions > 0 else 0.0
+        # Calculate quality score (0-10 based on mention rate)
+        visibility = mention_rate
+        mentions = total_mentions
+        quality_score = min(10.0, mention_rate / 10)
 
         execution_time = time.time() - start_time
 
@@ -297,8 +306,12 @@ async def mentions_check(request: MentionsCheckRequest):
             execution_time=execution_time
         )
 
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid input: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Mentions check failed: {str(e)}")
 
 # ==================== Info ====================
 
