@@ -310,13 +310,13 @@ async def health_check(request: HealthCheckRequest):
         # Fetch website with enhanced error handling
         fetch_result = await fetch_website(request.url)
         
-        if not fetch_result.success:
+        if fetch_result.error:
             raise HTTPException(
                 status_code=400,
                 detail=f"Failed to fetch website: {fetch_result.error}"
             )
         
-        soup = BeautifulSoup(fetch_result.content, 'html.parser')
+        soup = BeautifulSoup(fetch_result.html, 'html.parser')
         
         # Run all check categories with correct signatures
         # Technical checks: needs soup, final_url, sitemap_found, response_time_ms
@@ -739,8 +739,17 @@ Return exactly {num_queries} queries as a JSON array:
         
         if response.get("success") and response.get("response"):
             try:
-                # Parse JSON response
-                queries_data = json.loads(response["response"])
+                # Parse JSON response (strip markdown code blocks if present)
+                response_text = response["response"].strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]  # Remove ```json
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]  # Remove ```
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]  # Remove trailing ```
+                response_text = response_text.strip()
+
+                queries_data = json.loads(response_text)
                 
                 # Validate and clean up
                 valid_queries = []
