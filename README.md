@@ -1,53 +1,92 @@
 # OpenAnalytics
 
-Clean, production-ready AEO analysis API.
+AI-powered AEO (Answer Engine Optimization) analytics platform with health checks and visibility analysis.
+
+## Architecture
+
+Stage-based architecture aligned with [openblog](https://github.com/federicodeponte/openblog):
+
+```
+openanalytics/
+├── shared/                    # Shared components
+│   ├── gemini_client.py       # Unified Gemini client
+│   ├── models.py              # Request/Response schemas
+│   ├── scoring.py             # Tiered AEO scoring system
+│   ├── fetcher.py             # Async HTML/robots.txt fetcher
+│   └── constants.py           # Configuration
+├── stage health/              # Health Check stage
+│   ├── stage_health.py        # Main orchestrator
+│   └── health_models.py       # Stage models
+├── stage mentions/            # Mentions Check stage
+│   ├── stage_mentions.py      # Main orchestrator
+│   └── mentions_models.py     # Stage models
+├── checks/                    # Individual check modules
+│   ├── technical.py           # 16 technical SEO checks
+│   ├── structured_data.py     # 6 schema.org checks
+│   ├── aeo_crawler.py         # 4 AI crawler access checks
+│   └── authority.py           # 3 authority signal checks
+├── pipeline/                  # Pipeline orchestration
+│   └── run_pipeline.py        # Main orchestrator + CLI
+├── service/                   # Service layer
+│   └── analytics_service.py   # High-level business logic
+├── api.py                     # FastAPI endpoints
+└── CLAUDE.md                  # Project documentation
+```
 
 ## Services
 
-1. **Health Check** - 29 AEO checks with tiered scoring
+1. **Health Check** - 29 AEO checks with tiered scoring (0-100)
 2. **Mentions Check** - AI-powered hyperniche query generation
+3. **Full Analysis** - Combined health + mentions (parallel)
 
 ## Quick Start
 
-### Local Development
+### Installation
 
 ```bash
+# Clone repository
+git clone https://github.com/federicodeponte/openanalytics.git
+cd openanalytics
+
 # Install dependencies
 pip install -r requirements.txt
-playwright install chromium
+playwright install chromium  # Optional: for JS rendering
 
 # Set API key
 export GEMINI_API_KEY=your_key_here
+# Or create .env.local file:
+echo "GEMINI_API_KEY=your_key_here" > .env.local
+```
 
-# Run
-python app.py
+### Run API Server
+
+```bash
+# Direct
+python api.py
+
+# Or with uvicorn
+uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
 Server runs at: `http://localhost:8000`
 
-### Docker
+### Run CLI Pipeline
 
 ```bash
-docker build -t openanalytics .
-docker run -p 8000:8000 -e GEMINI_API_KEY=your_key openanalytics
+# Health check only
+python pipeline/run_pipeline.py --url https://example.com --health-only
+
+# Mentions check only
+python pipeline/run_pipeline.py --company "Example Corp" --industry "SaaS" --mentions-only
+
+# Full analysis
+python pipeline/run_pipeline.py --url https://example.com --company "Example Corp"
+
+# With output file
+python pipeline/run_pipeline.py --url https://example.com -o results/output.json
 ```
 
-### Railway
-
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login and deploy
-railway login
-railway link
-railway up
-```
-
-Set environment variable in Railway dashboard:
-- `GEMINI_API_KEY`: Your Gemini API key
-
-## API Usage
+## API Endpoints
 
 ### Health Check
 
@@ -61,13 +100,17 @@ Response:
 ```json
 {
   "url": "https://example.com",
-  "score": 45.0,
-  "max_score": 100.0,
-  "grade": "C",
-  "band": "Moderate",
-  "checks_passed": 18,
-  "checks_failed": 11,
-  "issues": [...],
+  "score": 75.0,
+  "grade": "B",
+  "band": "Strong",
+  "band_color": "#84cc16",
+  "checks_passed": 22,
+  "checks_failed": 7,
+  "tier_details": {
+    "tier0": {"passed": true, "cap": 100, "reason": "AI can access site"},
+    "tier1": {"passed": true, "cap": 100, "reason": "Has essential elements"},
+    "tier2": {"passed": false, "cap": 85, "reason": "Issue: incomplete Organization schema"}
+  },
   "execution_time": 0.56
 }
 ```
@@ -91,98 +134,99 @@ Response:
 {
   "company_name": "SCAILE",
   "queries_generated": [
-    {
-      "query": "best AEO platform for B2B SaaS companies United States",
-      "dimension": "UNBRANDED_HYPERNICHE"
-    },
-    ...
+    {"query": "best AEO platform for B2B SaaS companies", "dimension": "UNBRANDED_HYPERNICHE"},
+    {"query": "SCAILE alternatives", "dimension": "Competitive"}
   ],
-  "visibility": 75.0,
-  "mentions": 8,
-  "presence_rate": 80.0,
-  "quality_score": 6.5,
-  "execution_time": 45.2
+  "visibility": 30.0,
+  "mentions": 3,
+  "presence_rate": 100.0,
+  "quality_score": 3.0,
+  "execution_time": 45.2,
+  "ai_calls": 11
 }
 ```
 
-## Query Generation
+### Full Analysis
 
-The mentions check uses AI to generate sophisticated queries:
-
-**70% Unbranded** - Tests organic visibility
-- "best AEO platform for B2B SaaS companies"
-- "answer engine optimization for marketing teams"
-
-**20% Competitive** - Competitive analysis
-- "SCAILE alternatives for enterprise"
-- "leading AEO platforms vs SCAILE"
-
-**10% Branded** - Brand awareness
-- "SCAILE AEO platform"
-
-This tests **real organic discovery**, not just brand awareness.
-
-## File Structure
-
-```
-openanalytics/
-├── app.py                 # Main API (310 lines)
-├── fetcher.py             # Website fetcher
-├── gemini_client.py       # AI client
-├── scoring.py             # Scoring logic
-├── checks/                # Health check modules
-│   ├── technical.py
-│   ├── structured_data.py
-│   ├── aeo_crawler.py
-│   └── authority.py
-├── requirements.txt       # Dependencies
-├── Dockerfile             # Docker config
-├── Procfile               # Railway/Heroku
-└── README.md              # This file
+```bash
+curl -X POST http://localhost:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com",
+    "company_name": "Example Corp",
+    "industry": "SaaS"
+  }'
 ```
 
-**Total:** 8 files, ~1,500 lines of actual code
+## Tiered Scoring System
+
+The health check uses a hierarchical scoring system:
+
+| Tier | Name | Cap if Failed | Example |
+|------|------|---------------|---------|
+| 0 | Critical | 10 | Blocks all AI crawlers |
+| 1 | Essential | 45-55 | No Organization schema |
+| 2 | Important | 70-95 | Incomplete schema, thin content |
+| 3 | Excellence | 100 | Full optimization |
+
+**Final score = min(Tier 0 cap, Tier 1 cap, Tier 2 cap, base score)**
+
+## Grade Scale
+
+| Grade | Score | Description |
+|-------|-------|-------------|
+| A+ | 90+ | Exceptional |
+| A | 80-89 | Excellent |
+| B | 65-79 | Good |
+| C | 45-64 | Fair |
+| D | 25-44 | Poor |
+| F | <25 | Critical |
+
+## Query Distribution (Mentions)
+
+- **70% UNBRANDED** - Tests real organic discovery
+- **20% COMPETITIVE** - Comparison/alternative queries
+- **10% BRANDED** - Brand awareness queries
+
+## Docker Deployment
+
+```bash
+docker build -t openanalytics .
+docker run -p 8000:8000 -e GEMINI_API_KEY=your_key openanalytics
+```
+
+## Railway Deployment
+
+```bash
+railway login
+railway link
+railway up
+```
+
+Set `GEMINI_API_KEY` in Railway dashboard.
 
 ## Environment Variables
 
-- `GEMINI_API_KEY` (required) - Your Gemini API key
-- `PORT` (optional) - Server port (default: 8000)
+| Variable | Required | Description |
+|----------|----------|-------------|
+| GEMINI_API_KEY | Yes | Gemini API key |
+| SERPER_API_KEY | No | Serper API key for search grounding |
+| PORT | No | Server port (default: 8000) |
 
-## Deployment
+## Dependencies
 
-### Railway (Recommended)
-
-1. Push to GitHub
-2. Connect Railway to your repo
-3. Set `GEMINI_API_KEY` in environment variables
-4. Deploy automatically
-
-### Render
-
-```yaml
-# render.yaml
-services:
-  - type: web
-    name: openanalytics
-    env: docker
-    envVars:
-      - key: GEMINI_API_KEY
-        sync: false
-```
-
-### Fly.io
-
-```bash
-fly launch
-fly secrets set GEMINI_API_KEY=your_key
-fly deploy
-```
+- `google-genai>=0.2.0` - Gemini API client
+- `fastapi>=0.104.0` - API framework
+- `pydantic>=2.5.0` - Data validation
+- `httpx>=0.25.0` - Async HTTP client
+- `beautifulsoup4>=4.12.0` - HTML parsing
+- `playwright>=1.40.0` - JS rendering (optional)
 
 ## Performance
 
-- Health Check: ~0.5s
-- Query Generation: ~2s (AI)
+- Health Check: ~0.5-2s (depends on JS rendering)
 - Mentions Check: ~30-60s (10 queries)
+- Full Analysis: ~30-60s (parallel)
 
 ## License
 
