@@ -50,7 +50,7 @@ class GeminiClient:
 
             # Generate content with new API
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3-flash-preview",
                 contents=prompt
             )
 
@@ -91,7 +91,7 @@ class GeminiClient:
                 response = await self._complete_with_search(prompt)
             else:
                 response = self.client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3-flash-preview",
                     contents=prompt
                 )
 
@@ -103,7 +103,7 @@ class GeminiClient:
                         "role": "assistant"
                     }
                 }],
-                "model": "gemini-2.5-flash",
+                "model": "gemini-3-flash-preview",
                 "usage": {
                     "total_tokens": len(response.text.split())
                 }
@@ -125,7 +125,7 @@ class GeminiClient:
         self,
         prompt: str,
         system_prompt: str = "",
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-3-flash-preview",
         response_format: str = "json",
         **kwargs
     ) -> Dict[str, Any]:
@@ -168,7 +168,7 @@ class GeminiClient:
         except Exception as e:
             logger.warning(f"Search failed: {e}, using regular Gemini")
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3-flash-preview",
                 contents=prompt
             )
             return response
@@ -178,7 +178,7 @@ class GeminiClient:
         if not self.serper_api_key:
             logger.warning("No Serper API key, using regular Gemini")
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3-flash-preview",
                 contents=prompt
             )
             return response
@@ -195,7 +195,7 @@ class GeminiClient:
 
             # Generate response with enhanced context
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3-flash-preview",
                 contents=enhanced_prompt
             )
             return response
@@ -203,7 +203,7 @@ class GeminiClient:
         except Exception as e:
             logger.warning(f"Serper fallback failed: {e}, using regular Gemini")
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3-flash-preview",
                 contents=prompt
             )
             return response
@@ -314,7 +314,7 @@ class GeminiClient:
 
             # Generate content with search grounding
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3-flash-preview",
                 contents=query,
                 config=config,
             )
@@ -344,7 +344,7 @@ class GeminiClient:
             return {
                 "success": True,
                 "response": response.text,
-                "model": "gemini-2.5-flash",
+                "model": "gemini-3-flash-preview",
                 "search_grounding": True,
                 "grounding_sources": grounding_sources,
                 "source_count": len(grounding_sources)
@@ -359,13 +359,13 @@ class GeminiClient:
         """Fallback to standard query without search grounding."""
         try:
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3-flash-preview",
                 contents=query
             )
             return {
                 "success": True,
                 "response": response.text,
-                "model": "gemini-2.5-flash",
+                "model": "gemini-3-flash-preview",
                 "search_grounding": False,
                 "grounding_sources": [],
                 "source_count": 0

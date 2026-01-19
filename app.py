@@ -201,7 +201,7 @@ Return as JSON array:
         response = await client.query_with_structured_output(
             prompt=prompt,
             system_prompt="You are a B2B hyperniche query generation expert.",
-            model="gemini-2.5-flash",
+            model="gemini-3-flash-preview",
             response_format="json"
         )
 

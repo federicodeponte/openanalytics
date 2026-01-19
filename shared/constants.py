@@ -3,7 +3,7 @@ Shared constants for OpenAnalytics pipeline.
 """
 
 # Default Gemini model
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3-flash-preview"
 
 # Default timeout for HTTP requests (seconds)
 DEFAULT_TIMEOUT = 30.0

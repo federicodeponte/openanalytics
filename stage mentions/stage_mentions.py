@@ -64,7 +64,7 @@ Return as JSON array:
         response = await client.query_with_structured_output(
             prompt=prompt,
             system_prompt="You are a B2B hyperniche query generation expert.",
-            model="gemini-2.5-flash",
+            model="gemini-3-flash-preview",
             response_format="json"
         )
 
@@ -99,7 +99,7 @@ async def test_query_with_gemini(query: str, company_name: str) -> QueryResult:
         response = await client.query_with_structured_output(
             prompt=query,
             system_prompt="Answer this query concisely.",
-            model="gemini-2.5-flash"
+            model="gemini-3-flash-preview"
         )
 
         if response.get("success") and response.get("response"):
