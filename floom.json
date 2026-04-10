@@ -1,0 +1,45 @@
+{
+  "name": "OpenAnalytics",
+  "description": "AEO (Answer Engine Optimization) analysis platform. Runs health checks (29 technical SEO checks with tiered scoring) and AI visibility analysis (hyperniche query generation to measure brand presence in AI responses).",
+  "runtime": "python",
+  "actions": {
+    "health_check": {
+      "label": "AEO Health Check",
+      "inputs": [
+        {"name": "url", "type": "url", "label": "Website URL", "required": true, "placeholder": "https://example.com"}
+      ],
+      "outputs": [
+        {"name": "report", "type": "markdown", "label": "Health Report"},
+        {"name": "score", "type": "number", "label": "Health Score (0-100)"},
+        {"name": "details", "type": "json", "label": "Detailed Results"}
+      ]
+    },
+    "mentions_check": {
+      "label": "AI Visibility Check",
+      "inputs": [
+        {"name": "company_name", "type": "text", "label": "Company Name", "required": true},
+        {"name": "industry", "type": "text", "label": "Industry", "required": false},
+        {"name": "products", "type": "textarea", "label": "Products (one per line)", "required": false},
+        {"name": "target_audience", "type": "text", "label": "Target Audience", "required": false},
+        {"name": "num_queries", "type": "number", "label": "Number of Queries", "required": false, "default": 10}
+      ],
+      "outputs": [
+        {"name": "report", "type": "markdown", "label": "Visibility Report"},
+        {"name": "visibility_score", "type": "number", "label": "Visibility Score"},
+        {"name": "details", "type": "json", "label": "Detailed Results"}
+      ]
+    }
+  },
+  "python_dependencies": [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.5.0",
+    "httpx>=0.25.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+    "google-genai>=0.2.0",
+    "python-dotenv>=1.0.0"
+  ],
+  "secrets_needed": ["GEMINI_API_KEY"],
+  "manifest_version": "2.0"
+}

@@ -26,4 +26,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
   CMD curl -f http://localhost:8000/status || exit 1
 
 # Run
-CMD uvicorn app:app --host 0.0.0.0 --port $PORT
+CMD uvicorn server:app --host 0.0.0.0 --port $PORT

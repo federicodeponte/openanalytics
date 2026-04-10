@@ -4,7 +4,7 @@ Run with: pytest test_app.py -v
 """
 import pytest
 from httpx import ASGITransport, AsyncClient
-from app import app
+from server import app
 
 
 @pytest.mark.asyncio
