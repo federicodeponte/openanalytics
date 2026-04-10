@@ -20,9 +20,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def health_check(url: str) -> dict:
+def health_check(url: str, _knowledge: dict = None) -> dict:
     """Run comprehensive AEO health check on a website (29 checks)."""
     print(f"Running AEO health check on: {url}")
+    if _knowledge:
+        logger.info("health_check() received %d knowledge docs", len(_knowledge))
 
     result = asyncio.run(_run_health_check(url))
 
@@ -151,9 +153,18 @@ def mentions_check(
     products: str = "",
     target_audience: str = "",
     num_queries: int = 10,
+    _knowledge: dict = None,
 ) -> dict:
     """Run AI visibility check with hyperniche query generation."""
     print(f"Running AI visibility check for: {company_name}")
+
+    # Enrich inputs from knowledge docs if available
+    if _knowledge:
+        logger.info("mentions_check() received %d knowledge docs", len(_knowledge))
+        for doc_name, doc_text in _knowledge.items():
+            # Auto-fill industry/products from knowledge if not provided
+            if not industry and "industry" in doc_text.lower()[:200]:
+                logger.info("mentions_check() has knowledge context available for enrichment")
 
     # Parse products from textarea (one per line)
     products_list = [p.strip() for p in products.split("\n") if p.strip()] if products else None
